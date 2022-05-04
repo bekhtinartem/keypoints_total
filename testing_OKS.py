@@ -3,15 +3,22 @@ import config
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from model import FaceKeypointResNet50
+from model import *
 import time
-model = FaceKeypointResNet50(pretrained=True, requires_grad=False).to(config.DEVICE)
+import math
+
+from model import regnet_x_8gf
+
+res1=[]
+res2=[]
+model = resnet18(requires_grad=True, count=96).to(config.DEVICE)
 # load the model checkpoint
-checkpoint = torch.load('F:/key_points/model_1more_30.pth', map_location='cpu')
+model.eval()
+checkpoint = torch.load('F:/key_points/ResNet18/Dataset_3/model_30+20.pth', map_location='cpu')
 # load model weights state_dict
 model.load_state_dict(checkpoint['model_state_dict'])
 model.eval()
-import math
+
 key_point_konstant=0.1
 def exp(a):
     return math.e**a
@@ -31,9 +38,10 @@ t_p=[]
 t_x=[]
 t_y=[]
 classes=[]
+gc=0
 delta_classes=[]
 poln_res_classes=[]
-f=open("F:/key_points/test_data_all_points.csv", 'r')
+f=open("F:/key_points/Datasets/Dataset_3.csv", 'r')
 count=0
 number_class=-1
 start=True
@@ -41,6 +49,8 @@ t0=time.time()
 delta=[]
 poln_1=[]
 for s1 in f:
+    #print(s1)
+    gc+=1
     s=s1
     s = s.replace('"', '')
     s = s.replace(' ', '')
@@ -75,7 +85,9 @@ for s1 in f:
                     sr_poln /= count
                     #print(sr_delta/((w+6)))
                     #print(100 - 2 * sr_delta / (w + h) * 100)
-                    print(classes[i-1], " ",sr_poln*100+23, " ",100*sr_delta+42)
+                    print(classes[i-1], " ",sr_poln*100, " ",100*sr_delta)
+                    res1.append(sr_poln*100)
+                    res2.append(100*sr_delta)
                 delta.clear()
                 poln_1.clear()
         else:
@@ -86,7 +98,7 @@ for s1 in f:
 
         k=s.split(";")
 
-        k.pop()
+        #k.pop()
         #print(len(k))
         #print(k)
         point1=[]
@@ -166,8 +178,10 @@ for s1 in f:
                 countn=0
                 for i in range(len(x1)):
                     x1[i]/=w
+
                 for i in range(len(y1)):
                     y1[i]/=h
+
                 for i in range(len(point)):
 
                     if(point1[i]==1):
@@ -219,4 +233,19 @@ for s1 in f:
                 sr_delta+=delta_classes[i][j]
             sr_delta/=count
             sr_poln/=count
-            print(classes[i-1], " ",sr_poln*100+23, " ",100 *sr_delta+42)
+            print(classes[i-1], " ",sr_poln*100, " ",100 *sr_delta)
+            res1.append(sr_poln * 100)
+            res2.append(100 * sr_delta)
+
+sr1=0
+cnt=0
+sr2=0
+
+for i in range(len(res1)):
+    sr1+=res1[i]
+    sr2+=res2[i]
+    cnt+=1
+print()
+print()
+print(sr1/cnt, "   ", sr2/cnt)
+print((time.time()-t0)/gc)

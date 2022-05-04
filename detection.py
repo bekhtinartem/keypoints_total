@@ -1,15 +1,12 @@
 import torchvision.transforms as transforms
 import cv2
-import numpy
 import numpy as np
 import torchvision
-import numpy
 import torch
-import argparse
-from PIL import Image
 import config
 from model import FaceKeypointResNet50
 import matplotlib.pyplot as plt
+
 local_model = FaceKeypointResNet50(pretrained=True, requires_grad=False).to(config.DEVICE)
 checkpoint = torch.load('F:/key_points/model_1more_30.pth', map_location='cpu')
 local_model.load_state_dict(checkpoint['model_state_dict'])

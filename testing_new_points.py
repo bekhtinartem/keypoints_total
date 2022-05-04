@@ -2,16 +2,25 @@ import torch
 import config
 import cv2
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from model import FaceKeypointResNet50
 import time
+def exp(a):
+    return math.e**a
 model = FaceKeypointResNet50(pretrained=True, requires_grad=False).to(config.DEVICE)
 # load the model checkpoint
-checkpoint = torch.load('F:/key_points/model_more_20.pth', map_location='cpu')
+checkpoint = torch.load("F:/key_points/xception_model_dataset10_more_85.pth", map_location="cpu")
 # load model weights state_dict
-model.load_state_dict(checkpoint['model_state_dict'])
+name_points=["front_right_knee","throat_base","neck_end","tail_base","nose","left_eye","front_left_thai","front_left_knee",
+             "back_left_paw","left_earend","lower_jaw","back_right_knee","right_eye","left_earbase","front_left_paw","right_earbase",
+             "back_left_thai","back_middle","tail_end","upper_jaw","back_right_thai","right_earend","mouth_end_left",
+             "mouth_end_right","back_left_knee","front_right_paw","neck_base","throat_end","front_right_thai","back_right_paw"]
+
+model.load_state_dict(checkpoint["model_state_dict"])
 new_poln=[]
 new_delta=[]
+key_point_konstant=0.1
 for i in range(0, 37):
     new_poln.append([])
     new_delta.append([])
@@ -25,7 +34,7 @@ t_y=[]
 classes=[]
 delta_classes=[]
 poln_res_classes=[]
-f=open("F:/key_points/test_data_all_points.csv", 'r')
+f=open("F:/key_points/test_data_dataset10.csv", "r")
 count=0
 number_class=-1
 start=True
@@ -34,6 +43,7 @@ delta=[]
 poln_1=[]
 for s in f:
     if s!="end":
+        s=s.replace('"', '')
         poln=0
         count+=1
         #s=s[1:]
@@ -42,7 +52,7 @@ for s in f:
         start=False
         s=s[s.find(";")+1:]
         k=s.split(";")
-        k.pop()
+        #k.pop()
         #print(len(k))
         point1=[]
         x1=[]
@@ -72,6 +82,7 @@ for s in f:
                 with torch.no_grad():
                     image = frame
                     h, w = image.shape[:2]
+                    copy=image
                     image = cv2.resize(image, (224, 224))
                     #plt.show()
                     orig_frame = image.copy()
@@ -115,19 +126,17 @@ for s in f:
                 for i in range(len(point)):
                     delta_x = 0.0
                     delta_y = 0.0
-                    x[i]*=w
-                    x[i]=int(x[i])
-                    y[i]*=h
-                    y[i]=int(y[i])
+                    x1[i]/=w
+                    y1[i]/=h
                     if(point1[i]==1):
                         countt+=1
                         countn+=1
                         if(point[i]>0.5):
-
                             poln+=1
                             delta_x+=abs(x[i]-x1[i])
                             delta_y+=abs(y[i]-y1[i])
-                            new_delta[i].append(1.0*(delta_x+delta_y)/(2*(h+w)) *100)
+
+                            new_delta[i].append(exp(-((x[i]-x1[i])**2+ (y1[i] - y[i])**2) /(2*key_point_konstant**2 )))
                             new_poln[i].append(1)
                         else:
                             new_poln[i].append(0)
@@ -138,7 +147,6 @@ for s in f:
                             new_poln[i].append(1)
                         else:
                             new_poln[i].append(0)
-
                 #print(number_class)
                 poln_1.append(1.0*poln/countn)
                 delta.append(1.0*(delta_x+delta_y)/(2*(h+w)*countt) *100)
@@ -159,5 +167,5 @@ for i in range(len(new_poln)):
     for j in range(len(new_delta[i])):
         cd+=1
         sd+=new_delta[i][j]
-    print(1.0*sum/c*100 , "   ", 1.0*sd/cd)
+    print(name_points[i]," ",1.0*sum/c*100 , " ", 100.0*sd/cd)
 
